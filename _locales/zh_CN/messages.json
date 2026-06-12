@@ -1,0 +1,61 @@
+{
+  "extName": { "message": "Clash 指示器" },
+  "extDesc": { "message": "显示当前页面走直连还是代理，支持查看规则、延迟、流量和切换节点（基于 Clash external controller）" },
+  "detecting": { "message": "检测中" },
+  "direct": { "message": "直连" },
+  "proxy": { "message": "代理" },
+  "unknown": { "message": "未知" },
+  "notApplicable": { "message": "不适用" },
+  "nonWebTab": { "message": "非网页标签" },
+  "connFailed": { "message": "连接失败" },
+  "noResponse": { "message": "无响应" },
+  "errHint": {
+    "message": "无法访问 Clash controller：$ERR$。检查设置里的地址和 secret，以及 Clash 的 external-controller 配置。",
+    "placeholders": { "err": { "content": "$1" } }
+  },
+  "noRecord": {
+    "message": "没有找到 $HOST$ 的连接记录，刷新页面后再打开本弹窗。",
+    "placeholders": { "host": { "content": "$1" } }
+  },
+  "cached": { "message": "缓存结果（连接已关闭）" },
+  "switchNode": {
+    "message": "切换节点（$GROUP$）",
+    "placeholders": { "group": { "content": "$1" } }
+  },
+  "currentMark": { "message": "（当前）" },
+  "switchBtn": { "message": "切换" },
+  "switchFailed": {
+    "message": "切换失败：$ERR$",
+    "placeholders": { "err": { "content": "$1" } }
+  },
+  "domTitle": {
+    "message": "页面资源去向（$N$ 个域名）",
+    "placeholders": { "n": { "content": "$1" } }
+  },
+  "openDash": { "message": "打开面板" },
+  "refresh": { "message": "刷新" },
+  "settingsTitle": { "message": "设置（Clash controller）" },
+  "controllerLabel": { "message": "External Controller 地址（支持 http/https）" },
+  "secretLabel": { "message": "Secret（没有就留空）" },
+  "testBtn": { "message": "测试连接" },
+  "saveBtn": { "message": "保存" },
+  "saved": { "message": "已保存" },
+  "testing": { "message": "测试中…" },
+  "testOk": {
+    "message": "连接成功，Clash 版本：$VER$",
+    "placeholders": { "ver": { "content": "$1" } }
+  },
+  "failed": {
+    "message": "失败：$ERR$",
+    "placeholders": { "err": { "content": "$1" } }
+  },
+  "bgNoRecord": {
+    "message": "$HOST$：未找到连接记录，刷新页面后重试",
+    "placeholders": { "host": { "content": "$1" } }
+  },
+  "bgRule": { "message": "规则" },
+  "bgCtrlError": {
+    "message": "无法连接 Clash controller：$ERR$",
+    "placeholders": { "err": { "content": "$1" } }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "extName": { "message": "Clash Indicator" },
+  "extDesc": { "message": "Shows whether the current page goes direct or through a proxy, with rule, latency, traffic and node switching (via Clash external controller)" },
+  "detecting": { "message": "Detecting" },
+  "direct": { "message": "Direct" },
+  "proxy": { "message": "Proxy" },
+  "unknown": { "message": "Unknown" },
+  "notApplicable": { "message": "N/A" },
+  "nonWebTab": { "message": "Not a web page" },
+  "connFailed": { "message": "Connection failed" },
+  "noResponse": { "message": "no response" },
+  "errHint": {
+    "message": "Cannot reach the Clash controller: $ERR$. Check the address and secret in settings, and the external-controller option in your Clash config.",
+    "placeholders": { "err": { "content": "$1" } }
+  },
+  "noRecord": {
+    "message": "No connection record for $HOST$. Reload the page, then reopen this popup.",
+    "placeholders": { "host": { "content": "$1" } }
+  },
+  "cached": { "message": "Cached result (connection closed)" },
+  "switchNode": {
+    "message": "Switch node ($GROUP$)",
+    "placeholders": { "group": { "content": "$1" } }
+  },
+  "currentMark": { "message": " (current)" },
+  "switchBtn": { "message": "Switch" },
+  "switchFailed": {
+    "message": "Switch failed: $ERR$",
+    "placeholders": { "err": { "content": "$1" } }
+  },
+  "domTitle": {
+    "message": "Page resources ($N$ domains)",
+    "placeholders": { "n": { "content": "$1" } }
+  },
+  "openDash": { "message": "Open dashboard" },
+  "refresh": { "message": "Refresh" },
+  "settingsTitle": { "message": "Settings (Clash controller)" },
+  "controllerLabel": { "message": "External controller URL (http/https)" },
+  "secretLabel": { "message": "Secret (leave empty if none)" },
+  "testBtn": { "message": "Test connection" },
+  "saveBtn": { "message": "Save" },
+  "saved": { "message": "Saved" },
+  "testing": { "message": "Testing…" },
+  "testOk": {
+    "message": "Connected. Clash version: $VER$",
+    "placeholders": { "ver": { "content": "$1" } }
+  },
+  "failed": {
+    "message": "Failed: $ERR$",
+    "placeholders": { "err": { "content": "$1" } }
+  },
+  "bgNoRecord": {
+    "message": "$HOST$: no connection record, reload the page and retry",
+    "placeholders": { "host": { "content": "$1" } }
+  },
+  "bgRule": { "message": "Rule" },
+  "bgCtrlError": {
+    "message": "Cannot reach the Clash controller: $ERR$",
+    "placeholders": { "err": { "content": "$1" } }
+  }
+}
