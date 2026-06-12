@@ -21,9 +21,9 @@ English:
 中文：
 
 ```
-基于 Clash external controller API 的路由状态指示器。
+实时显示当前页面走直连还是代理的路由状态指示器，基于 Clash external controller API，纯只读、零数据收集。
 
-功能：
+【功能】
 • 工具栏图标实时变色：绿=直连，蓝=代理，灰=未知，红=无法连接
 • 显示命中规则、节点链、节点延迟、页面流量
 • 页面资源去向汇总：当前页所有域名各走哪条路线
@@ -31,17 +31,32 @@ English:
 • 新装引导页，两步完成配置
 • 中英双语
 
-使用前提：本地运行 Clash / Clash Verge / mihomo 等，并开启 external-controller。
+【如何使用】
+1. 确认本地 Clash 配置已开启 external-controller，例如：
+   external-controller: 127.0.0.1:9090
+   secret: 你的密码（可选但建议设置）
+   Clash Verge / Clash for Windows 用户可在客户端设置界面直接查看地址和密码。
+2. 安装后会自动打开引导页，先把扩展固定到工具栏：点浏览器右上角拼图图标，再点本扩展旁的图钉。
+3. 在引导页（或弹窗底部"设置"）填入 controller 地址和 secret，点"测试连接"确认成功后保存。
+4. 打开任意网页，看图标颜色即知直连还是代理；点开弹窗可查看命中规则、节点延迟、页面流量和各域名去向。
+5. 若显示"未知"，刷新一下页面再打开弹窗即可。
+
+【使用前提】
+本地运行 Clash / Clash Verge / mihomo 等代理软件，并开启 external-controller。
+
+【隐私】
 扩展只与你配置的本地 controller 地址通信，不收集、不上传任何数据。
-开源地址：<GitHub 仓库链接>
+
+【开源】
+https://github.com/AugustusHu/clash-indicator
 ```
 
 English:
 
 ```
-A route status indicator powered by the Clash external controller API.
+A route status indicator that shows in real time whether the current page goes direct or through a proxy. Powered by the Clash external controller API. Read-only, zero data collection.
 
-Features:
+FEATURES
 • Toolbar icon changes color in real time: green = direct, blue = proxied, gray = unknown, red = controller unreachable
 • Shows matched rule, proxy chain, node latency and page traffic
 • Per-domain breakdown of where every resource on the page goes
@@ -49,9 +64,24 @@ Features:
 • Onboarding page — set up in two steps
 • Available in English and Chinese
 
-Requires Clash / Clash Verge / mihomo running locally with external-controller enabled.
+HOW TO USE
+1. Make sure external-controller is enabled in your local Clash config, e.g.:
+   external-controller: 127.0.0.1:9090
+   secret: your-password (optional but recommended)
+   Clash Verge / Clash for Windows users can find the address and secret in the client settings.
+2. After installation an onboarding page opens automatically. First pin the extension: click the puzzle icon in the toolbar, then the pin next to this extension.
+3. Enter the controller address and secret on the onboarding page (or in the popup's Settings), click "Test connection", then save.
+4. Open any page — the icon color tells you direct or proxied. Open the popup for the matched rule, latency, traffic and per-domain routes.
+5. If it shows "Unknown", reload the page and reopen the popup.
+
+REQUIREMENTS
+Clash / Clash Verge / mihomo running locally with external-controller enabled.
+
+PRIVACY
 The extension only talks to the local controller address you configure. No data is collected or transmitted.
-Source code: <GitHub repo URL>
+
+SOURCE
+https://github.com/AugustusHu/clash-indicator
 ```
 
 ## 权限用途说明（隐私权规范 → 权限理由，逐项填写）
@@ -76,7 +106,7 @@ English versions:
 
 - 是否收集用户数据：**否**（全部选"不收集"）
 - 远程代码：**否**
-- 隐私政策 URL：GitHub 仓库的 `PRIVACY.md` 链接（如 `https://github.com/<user>/clash-indicator/blob/main/PRIVACY.md`）
+- 隐私政策 URL：`https://github.com/AugustusHu/clash-indicator/blob/master/PRIVACY.md`
 
 ## 图片素材（store-assets/）
 
