@@ -38,6 +38,22 @@ async function getConfig() {
   return { ...DEFAULTS, ...cfg, controller: normalizeController(cfg.controller) };
 }
 
+// 是否已成功连过 controller（用于区分"没配置"和"连接故障"）
+let configured = null;
+async function isConfigured() {
+  if (configured === null) {
+    const d = await chrome.storage.local.get({ configured: false });
+    configured = d.configured;
+  }
+  return configured;
+}
+async function markConfigured() {
+  if (configured !== true) {
+    configured = true;
+    await chrome.storage.local.set({ configured: true });
+  }
+}
+
 async function api(path, options = {}) {
   const cfg = await getConfig();
   const headers = { ...(options.headers || {}) };
@@ -45,6 +61,7 @@ async function api(path, options = {}) {
   const url = cfg.controller.replace(/\/+$/, "") + path;
   const resp = await fetch(url, { ...options, headers });
   if (!resp.ok) throw new Error("HTTP " + resp.status);
+  await markConfigured();
   return resp.json();
 }
 
@@ -178,22 +195,16 @@ async function lookup(host, tabId) {
   }
   domains.sort((a, b) => a.host.localeCompare(b.host));
 
-  // 延迟 + 节点组信息
+  // 节点延迟
   let delayMs = null;
-  let group = null;
   if (summary && !summary.direct && summary.chains.length) {
     try {
       const proxies = await fetchProxies();
       delayMs = nodeDelay(proxies, summary.outbound);
-      const groupName = summary.chains[summary.chains.length - 1];
-      const g = proxies[groupName];
-      if (g && g.all && g.all.length) {
-        group = { name: groupName, now: g.now || "", all: g.all };
-      }
     } catch (e) {}
   }
 
-  return { ok: true, fresh, summary, delayMs, group, traffic, domains, counts };
+  return { ok: true, fresh, summary, delayMs, traffic, domains, counts };
 }
 
 // ---------- 动态图标 ----------
@@ -246,7 +257,12 @@ async function updateIndicator(tabId, url) {
     const label = s.direct ? t("direct") : t("proxy") + " " + s.chains.slice().reverse().join(" → ");
     await setIndicator(tabId, s.direct ? "direct" : "proxy", `${host}: ${label}\n${t("bgRule")}: ${s.rule} ${s.rulePayload}`);
   } catch (e) {
-    await setIndicator(tabId, "error", t("bgCtrlError", [e.message]));
+    if (await isConfigured()) {
+      await setIndicator(tabId, "error", t("bgCtrlError", [e.message]));
+    } else {
+      // 从未连接成功过：大概率还没配置，给中性提示而非报错
+      await setIndicator(tabId, "unknown", t("bgNotConfigured"));
+    }
   }
 }
 
@@ -254,6 +270,13 @@ function scheduleUpdate(tabId, url) {
   updateIndicator(tabId, url);
   setTimeout(() => updateIndicator(tabId, url), 2000);
 }
+
+// 新安装时打开引导页（固定扩展 + 配置 controller）
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
+  }
+});
 
 // ---------- 事件 ----------
 chrome.webRequest.onBeforeRequest.addListener(
@@ -304,22 +327,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .catch((e) => sendResponse({ ok: false, error: e.message }));
     return true;
   }
-  if (msg.type === "switchProxy") {
-    (async () => {
-      const cfg = await getConfig();
-      const headers = { "Content-Type": "application/json" };
-      if (cfg.secret) headers["Authorization"] = "Bearer " + cfg.secret;
-      const url = cfg.controller.replace(/\/+$/, "") + "/proxies/" + encodeURIComponent(msg.group);
-      const resp = await fetch(url, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({ name: msg.name })
-      });
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
-      proxiesCache = { data: null, time: 0 };
-    })()
-      .then(() => sendResponse({ ok: true }))
-      .catch((e) => sendResponse({ ok: false, error: e.message }));
+  if (msg.type === "isConfigured") {
+    isConfigured().then((v) => sendResponse({ ok: true, configured: v }));
     return true;
   }
   if (msg.type === "getController") {
@@ -332,6 +341,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if (msg.secret) headers["Authorization"] = "Bearer " + msg.secret;
       const resp = await fetch(normalizeController(msg.controller) + "/version", { headers });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
+      await markConfigured();
       return resp.json();
     })()
       .then((v) => sendResponse({ ok: true, version: v.version || JSON.stringify(v) }))

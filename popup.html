@@ -42,11 +42,6 @@
   .dom .o.direct { color: #16a34a; }
   .dom .o.proxy { color: #2563eb; }
   .dom .o.unknown { color: #9ca3af; }
-  .switch-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
-  select {
-    flex: 1; padding: 5px 6px; border: 1px solid #d1d5db;
-    border-radius: 6px; font-size: 12px; background: #fff; min-width: 0;
-  }
   .footer { padding: 10px 16px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; }
   button {
     flex: 1; padding: 6px 0; border: 1px solid #d1d5db; background: #fff;
@@ -89,14 +84,6 @@
     </div>
   </div>
 
-  <div class="section" id="switch-sec" style="display:none">
-    <div class="sec-head"><span id="group-label"></span></div>
-    <div class="switch-row">
-      <select id="node-select"></select>
-      <button id="switch-btn" class="primary" style="flex:0 0 64px" data-i18n="switchBtn"></button>
-    </div>
-  </div>
-
   <div class="section" id="domains-sec" style="display:none">
     <div class="sec-head">
       <span id="dom-title"></span>
@@ -113,7 +100,7 @@
     <button id="refresh" data-i18n="refresh"></button>
   </div>
 
-  <details>
+  <details id="settings-details">
     <summary data-i18n="settingsTitle"></summary>
     <div class="settings">
       <label data-i18n="controllerLabel"></label>

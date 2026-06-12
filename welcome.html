@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Clash Indicator</title>
+<style>
+  body {
+    margin: 0; background: #f3f4f6; color: #1f2937;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px; line-height: 1.7;
+  }
+  .wrap { max-width: 640px; margin: 48px auto; padding: 0 20px; }
+  h1 { font-size: 24px; display: flex; align-items: center; gap: 12px; }
+  h1 img { width: 36px; height: 36px; }
+  .intro { color: #6b7280; margin-bottom: 28px; }
+  .card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 16px;
+  }
+  .step { display: flex; gap: 14px; }
+  .num {
+    flex: 0 0 28px; height: 28px; border-radius: 50%; background: #2563eb;
+    color: #fff; font-weight: 600; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; margin-top: 2px;
+  }
+  .step h2 { font-size: 16px; margin: 4px 0 6px; }
+  .step p { margin: 0 0 8px; color: #4b5563; }
+  .kbd {
+    background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px;
+    padding: 1px 6px; font-size: 13px;
+  }
+  .legend { display: flex; gap: 18px; margin-top: 6px; }
+  .legend span { display: flex; align-items: center; gap: 6px; color: #4b5563; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  label { display: block; margin: 10px 0 4px; color: #4b5563; font-size: 13px; }
+  input {
+    width: 100%; max-width: 360px; box-sizing: border-box; padding: 8px 10px;
+    border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;
+  }
+  .btns { margin-top: 14px; display: flex; gap: 10px; }
+  button {
+    padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 14px;
+    border: 1px solid #d1d5db; background: #fff; color: #1f2937;
+  }
+  button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+  #msg { margin-top: 10px; min-height: 20px; font-size: 13px; }
+  #msg.ok { color: #16a34a; }
+  #msg.err { color: #dc2626; }
+  code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><img src="icons/icon48.png" alt=""><span data-i18n="extName"></span></h1>
+  <p class="intro" data-i18n="wIntro"></p>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">1</div>
+      <div>
+        <h2 data-i18n="wStep1Title"></h2>
+        <p data-i18n="wStep1Desc"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">2</div>
+      <div style="flex:1">
+        <h2 data-i18n="wStep2Title"></h2>
+        <p data-i18n="wStep2Desc"></p>
+        <label data-i18n="controllerLabel"></label>
+        <input id="controller" placeholder="http://192.168.10.1:9090">
+        <label data-i18n="secretLabel"></label>
+        <input id="secret" type="password">
+        <div class="btns">
+          <button id="test" data-i18n="testBtn"></button>
+          <button id="save" class="primary" data-i18n="saveBtn"></button>
+        </div>
+        <div id="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">
+      <div class="num">3</div>
+      <div>
+        <h2 data-i18n="wStep3Title"></h2>
+        <p data-i18n="wStep3Desc"></p>
+        <div class="legend">
+          <span><i class="dot" style="background:#16a34a"></i><span data-i18n="direct"></span></span>
+          <span><i class="dot" style="background:#2563eb"></i><span data-i18n="proxy"></span></span>
+          <span><i class="dot" style="background:#9ca3af"></i><span data-i18n="unknown"></span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="welcome.js"></script>
+</body>
+</html>

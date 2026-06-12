@@ -4,6 +4,6 @@ set -e
 cd "$(dirname "$0")"
 mkdir -p dist
 rm -f dist/clash-indicator.zip
-zip -rq dist/clash-indicator.zip manifest.json background.js popup.html popup.js icons _locales
+zip -rq dist/clash-indicator.zip manifest.json background.js popup.html popup.js welcome.html welcome.js icons _locales
 echo "OK -> dist/clash-indicator.zip"
 unzip -l dist/clash-indicator.zip

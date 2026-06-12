@@ -18,16 +18,16 @@
     "placeholders": { "host": { "content": "$1" } }
   },
   "cached": { "message": "Cached result (connection closed)" },
-  "switchNode": {
-    "message": "Switch node ($GROUP$)",
-    "placeholders": { "group": { "content": "$1" } }
-  },
-  "currentMark": { "message": " (current)" },
-  "switchBtn": { "message": "Switch" },
-  "switchFailed": {
-    "message": "Switch failed: $ERR$",
-    "placeholders": { "err": { "content": "$1" } }
-  },
+  "notConfigured": { "message": "Setup needed" },
+  "setupHint": { "message": "First run: enter your Clash external controller address and secret below, click \"Test connection\", then save. You can find the address in Clash Verge / Clash for Windows settings." },
+  "bgNotConfigured": { "message": "Clash Indicator: not configured yet — click the icon to set up" },
+  "wIntro": { "message": "Two quick steps, then the icon color tells you in real time whether the current page goes direct or through a proxy." },
+  "wStep1Title": { "message": "Pin the extension" },
+  "wStep1Desc": { "message": "Click the puzzle icon 🧩 in the toolbar, find \"Clash Indicator\", and click the pin next to it. Without pinning, you would have to dig through the menu every time." },
+  "wStep2Title": { "message": "Connect to Clash" },
+  "wStep2Desc": { "message": "Enter your Clash external controller address and secret (found in Clash Verge / Clash for Windows settings), click \"Test connection\", then save." },
+  "wStep3Title": { "message": "Done" },
+  "wStep3Desc": { "message": "Open any page and watch the toolbar icon color:" },
   "domTitle": {
     "message": "Page resources ($N$ domains)",
     "placeholders": { "n": { "content": "$1" } }

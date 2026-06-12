@@ -2,7 +2,6 @@ const $ = (id) => document.getElementById(id);
 const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
 let curHost = "";
 let curTabId = null;
-let curGroup = null;
 
 document.querySelectorAll("[data-i18n]").forEach((el) => {
   el.textContent = t(el.dataset.i18n);
@@ -31,13 +30,22 @@ function show(id, on) {
   $(id).style.display = on ? "" : "none";
 }
 
-function render(r) {
-  ["chain-row", "rule-row", "stale-row", "switch-sec", "domains-sec", "hint"].forEach((id) => show(id, false));
+async function render(r) {
+  ["chain-row", "rule-row", "stale-row", "domains-sec", "hint"].forEach((id) => show(id, false));
 
   if (!r || !r.ok) {
-    setVerdict("error", t("connFailed"));
+    const c = await chrome.runtime.sendMessage({ type: "isConfigured" });
     show("hint", true);
-    $("hint").textContent = t("errHint", [r ? r.error : t("noResponse")]);
+    if (c && !c.configured) {
+      // 从未连接成功：引导配置而不是报错
+      setVerdict("unknown", t("notConfigured"));
+      $("hint").textContent = t("setupHint");
+      $("settings-details").open = true;
+      $("controller").focus();
+    } else {
+      setVerdict("error", t("connFailed"));
+      $("hint").textContent = t("errHint", [r ? r.error : t("noResponse")]);
+    }
     return;
   }
 
@@ -73,21 +81,6 @@ function render(r) {
       : "";
 
   if (!r.fresh) show("stale-row", true);
-
-  if (r.group && r.group.all && r.group.all.length > 1) {
-    curGroup = r.group;
-    show("switch-sec", true);
-    $("group-label").textContent = t("switchNode", [r.group.name]);
-    const sel = $("node-select");
-    sel.innerHTML = "";
-    for (const name of r.group.all) {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name + (name === r.group.now ? t("currentMark") : "");
-      if (name === r.group.now) opt.selected = true;
-      sel.appendChild(opt);
-    }
-  }
 
   renderDomains(r);
 }
@@ -131,7 +124,7 @@ function renderDomains(r) {
 async function refresh() {
   if (!curHost) return;
   const r = await chrome.runtime.sendMessage({ type: "lookup", host: curHost, tabId: curTabId });
-  render(r);
+  await render(r);
 }
 
 async function init() {
@@ -160,20 +153,6 @@ $("open-dash").addEventListener("click", async () => {
   chrome.tabs.create({ url: base + "/ui/" });
 });
 
-$("switch-btn").addEventListener("click", async () => {
-  if (!curGroup) return;
-  const name = $("node-select").value;
-  const btn = $("switch-btn");
-  btn.textContent = "…";
-  const r = await chrome.runtime.sendMessage({ type: "switchProxy", group: curGroup.name, name });
-  btn.textContent = t("switchBtn");
-  if (r && r.ok) {
-    await refresh();
-  } else {
-    alert(t("switchFailed", [r ? r.error : t("noResponse")]));
-  }
-});
-
 $("save").addEventListener("click", async () => {
   const normalized = normalizeController($("controller").value);
   $("controller").value = normalized;
@@ -198,6 +177,7 @@ $("test").addEventListener("click", async () => {
   if (r && r.ok) {
     m.className = "ok";
     m.textContent = t("testOk", [String(r.version)]);
+    await refresh();
   } else {
     m.className = "err";
     m.textContent = t("failed", [r ? r.error : t("noResponse")]);

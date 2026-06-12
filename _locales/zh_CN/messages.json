@@ -18,16 +18,16 @@
     "placeholders": { "host": { "content": "$1" } }
   },
   "cached": { "message": "缓存结果（连接已关闭）" },
-  "switchNode": {
-    "message": "切换节点（$GROUP$）",
-    "placeholders": { "group": { "content": "$1" } }
-  },
-  "currentMark": { "message": "（当前）" },
-  "switchBtn": { "message": "切换" },
-  "switchFailed": {
-    "message": "切换失败：$ERR$",
-    "placeholders": { "err": { "content": "$1" } }
-  },
+  "notConfigured": { "message": "待配置" },
+  "setupHint": { "message": "首次使用：请在下方填写 Clash 的 external controller 地址和 secret，点「测试连接」确认后保存。地址可在 Clash Verge / Clash for Windows 的设置中找到。" },
+  "bgNotConfigured": { "message": "Clash 指示器：尚未配置，点击图标完成设置" },
+  "wIntro": { "message": "两步完成设置，之后图标颜色会实时告诉你当前页面走直连还是代理。" },
+  "wStep1Title": { "message": "固定扩展到工具栏" },
+  "wStep1Desc": { "message": "点击浏览器右上角的拼图图标 🧩，找到「Clash 指示器」，点旁边的图钉将它固定。不固定的话每次都要翻菜单，很不方便。" },
+  "wStep2Title": { "message": "连接 Clash" },
+  "wStep2Desc": { "message": "填写 Clash 的 external controller 地址和 secret（在 Clash Verge / Clash for Windows 设置中可以找到），点「测试连接」确认后保存。" },
+  "wStep3Title": { "message": "完成" },
+  "wStep3Desc": { "message": "打开任意网页，看工具栏图标颜色：" },
   "domTitle": {
     "message": "页面资源去向（$N$ 个域名）",
     "placeholders": { "n": { "content": "$1" } }

@@ -6,15 +6,15 @@
 - **类别**：开发者工具（Developer Tools）
 - **语言**：中文（简体）+ English
 - **单一用途说明（Single purpose）**：
-  > 显示当前标签页经由本地 Clash 代理软件的路由状态（直连或代理），并提供规则、延迟与节点切换的查看入口。
+  > 显示当前标签页经由本地 Clash 代理软件的路由状态（直连或代理），以及命中规则、节点延迟等只读信息。
 
 ## 简短描述（132 字符内）
 
 中文：
-> 实时显示当前页面走直连还是代理，查看 Clash 命中规则、节点延迟与页面流量，弹窗内一键切换节点。
+> 实时显示当前页面走直连还是代理，查看 Clash 命中规则、节点延迟与页面流量。纯只读，零数据收集。
 
 English:
-> See if the current page goes direct or through your Clash proxy — rules, latency, traffic, and one-click node switching.
+> See if the current page goes direct or through your Clash proxy — rules, latency and traffic at a glance. Read-only, zero data collection.
 
 ## 详细描述
 
@@ -27,8 +27,8 @@ English:
 • 工具栏图标实时变色：绿=直连，蓝=代理，灰=未知，红=无法连接
 • 显示命中规则、节点链、节点延迟、页面流量
 • 页面资源去向汇总：当前页所有域名各走哪条路线
-• 弹窗内直接切换代理组节点
 • 一键打开 Clash 面板
+• 新装引导页，两步完成配置
 • 中英双语
 
 使用前提：本地运行 Clash / Clash Verge / mihomo 等，并开启 external-controller。
@@ -45,8 +45,8 @@ Features:
 • Toolbar icon changes color in real time: green = direct, blue = proxied, gray = unknown, red = controller unreachable
 • Shows matched rule, proxy chain, node latency and page traffic
 • Per-domain breakdown of where every resource on the page goes
-• Switch proxy group nodes right from the popup
 • One-click access to your Clash dashboard
+• Onboarding page — set up in two steps
 • Available in English and Chinese
 
 Requires Clash / Clash Verge / mihomo running locally with external-controller enabled.
