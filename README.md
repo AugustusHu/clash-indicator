@@ -9,13 +9,13 @@ A lightweight Chrome extension that shows whether the current page goes **direct
 ## 功能 / Features
 
 - 工具栏图标实时变色：绿 = 直连，蓝 = 代理，灰 = 未知，红 = 无法连接 Clash
-- 弹窗显示命中规则、节点链、节点延迟和页面流量
+- 弹窗显示命中规则、节点链和节点延迟
 - 页面资源去向汇总：当前页所有域名各走哪条路线，比例条一目了然
 - 一键打开 Clash 面板
 - 新装引导页，两步完成配置
-- 中英双语（跟随浏览器语言）
+- 中英双语（跟随浏览器语言或手动切换）
 
-Toolbar icon changes color in real time (green = direct, blue = proxy). The popup shows the matched rule, proxy chain, node latency, page traffic, and a per-domain route breakdown. Read-only by design — it never changes your Clash state.
+Toolbar icon changes color in real time (green = direct, blue = proxy). The popup shows the matched rule, proxy chain, node latency, and a per-domain route breakdown. Read-only by design — it never changes your Clash state.
 
 ## 安装 / Install
 

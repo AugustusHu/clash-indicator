@@ -1,11 +1,39 @@
 const $ = (id) => document.getElementById(id);
-const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
+let localeMessages = null;
+const t = (key, subs) => {
+  const item = localeMessages && localeMessages[key.toLowerCase()];
+  if (!item) return chrome.i18n.getMessage(key, subs) || key;
+  const values = Array.isArray(subs) ? subs : subs == null ? [] : [subs];
+  let message = item.message || key;
+  for (const [name, placeholder] of Object.entries(item.placeholders || {})) {
+    const index = Number(String(placeholder.content || "").replace("$", "")) - 1;
+    message = message.replaceAll("$" + name.toUpperCase() + "$", values[index] ?? "");
+  }
+  return message;
+};
 let curHost = "";
 let curTabId = null;
 
-document.querySelectorAll("[data-i18n]").forEach((el) => {
-  el.textContent = t(el.dataset.i18n);
-});
+async function loadLanguage() {
+  const { language = "auto" } = await chrome.storage.sync.get({ language: "auto" });
+  $("language").value = language;
+  const resolvedLanguage = language === "auto"
+    ? (chrome.i18n.getUILanguage().toLowerCase().startsWith("zh") ? "zh_CN" : "en")
+    : language;
+  const version = chrome.runtime.getManifest().version;
+  const url = chrome.runtime.getURL(`_locales/${resolvedLanguage}/messages.json?v=${version}`);
+  const response = await fetch(url, { cache: "no-store" });
+  const messages = await response.json();
+  localeMessages = Object.fromEntries(
+    Object.entries(messages).map(([key, value]) => [key.toLowerCase(), value])
+  );
+}
+
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+}
 
 function normalizeController(v) {
   let u = (v || "").trim().replace(/\/+$/, "");
@@ -13,11 +41,10 @@ function normalizeController(v) {
   return u || "http://192.168.10.1:9090";
 }
 
-function fmtBytes(n) {
-  if (n < 1024) return n + " B";
-  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
-  if (n < 1073741824) return (n / 1048576).toFixed(1) + " MB";
-  return (n / 1073741824).toFixed(2) + " GB";
+function fmtMs(n) {
+  if (!Number.isFinite(n)) return "";
+  if (n < 1000) return Math.round(n) + " ms";
+  return (n / 1000).toFixed(1) + " s";
 }
 
 function setVerdict(cls, text) {
@@ -60,6 +87,8 @@ async function render(r) {
   const s = r.summary;
   if (s.direct) {
     setVerdict("direct", t("direct"));
+  } else if (s.blocked) {
+    setVerdict("block", t("block"));
   } else {
     setVerdict("proxy", t("proxy"));
     show("chain-row", true);
@@ -75,11 +104,6 @@ async function render(r) {
 
   show("rule-row", true);
   $("rule").textContent = s.rule + (s.rulePayload ? "（" + s.rulePayload + "）" : "");
-  $("traffic").textContent =
-    r.traffic && (r.traffic.up || r.traffic.down)
-      ? "↓ " + fmtBytes(r.traffic.down) + " · ↑ " + fmtBytes(r.traffic.up)
-      : "";
-
   if (!r.fresh) show("stale-row", true);
 
   renderDomains(r);
@@ -92,11 +116,12 @@ function renderDomains(r) {
   $("dom-title").textContent = t("domTitle", [String(r.domains.length)]);
   $("dom-counts").textContent =
     t("proxy") + " " + c.proxy + " · " + t("direct") + " " + c.direct +
+    (c.block ? " · " + t("block") + " " + c.block : "") +
     (c.unknown ? " · " + t("unknown") + " " + c.unknown : "");
 
   const bar = $("bar");
   bar.innerHTML = "";
-  const segs = [["p", c.proxy], ["d", c.direct], ["u", c.unknown]];
+  const segs = [["p", c.proxy], ["d", c.direct], ["b", c.block], ["u", c.unknown]];
   for (const [cls, n] of segs) {
     if (!n) continue;
     const div = document.createElement("div");
@@ -108,15 +133,30 @@ function renderDomains(r) {
   const list = $("dom-list");
   list.innerHTML = "";
   for (const d of r.domains) {
-    const row = document.createElement("div");
+    const row = document.createElement("tr");
     row.className = "dom";
-    const h = document.createElement("span");
+    const o = document.createElement("td");
+    o.className = "o " + d.state;
+    o.textContent = d.state === "direct"
+      ? t("direct")
+      : d.state === "proxy"
+        ? d.outbound
+        : d.state === "block"
+          ? t("block")
+          : t("unknown");
+    o.title = o.textContent;
+    const h = document.createElement("td");
     h.className = "h";
     h.textContent = d.host;
-    const o = document.createElement("span");
-    o.className = "o " + d.state;
-    o.textContent = d.state === "direct" ? t("direct") : d.state === "proxy" ? d.outbound : t("unknown");
-    row.append(h, o);
+    h.title = d.host;
+    const duration = document.createElement("td");
+    duration.className = "duration";
+    const timing = d.timing && d.timing.count
+      ? fmtMs(d.timing.avgDuration) + (d.timing.count > 1 ? " ×" + d.timing.count : "")
+      : "—";
+    duration.textContent = timing;
+    if (d.timing && d.timing.lastError) duration.title = d.timing.lastError;
+    row.append(h, o, duration);
     list.appendChild(row);
   }
 }
@@ -128,6 +168,8 @@ async function refresh() {
 }
 
 async function init() {
+  await loadLanguage();
+  applyI18n();
   const cfg = await chrome.storage.sync.get({ controller: "http://192.168.10.1:9090", secret: "" });
   $("controller").value = cfg.controller;
   $("secret").value = cfg.secret;
@@ -146,6 +188,11 @@ async function init() {
 }
 
 $("refresh").addEventListener("click", refresh);
+
+$("language").addEventListener("change", async () => {
+  await chrome.storage.sync.set({ language: $("language").value });
+  location.reload();
+});
 
 $("open-dash").addEventListener("click", async () => {
   const r = await chrome.runtime.sendMessage({ type: "getController" });

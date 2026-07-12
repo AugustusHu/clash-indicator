@@ -6,7 +6,35 @@ const DEFAULTS = {
   secret: ""
 };
 
-const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
+let localeMessages = null;
+
+function t(key, subs) {
+  const item = localeMessages && localeMessages[key.toLowerCase()];
+  if (!item) return chrome.i18n.getMessage(key, subs) || key;
+  const values = Array.isArray(subs) ? subs : subs == null ? [] : [subs];
+  let message = item.message || key;
+  for (const [name, placeholder] of Object.entries(item.placeholders || {})) {
+    const index = Number(String(placeholder.content || "").replace("$", "")) - 1;
+    message = message.replaceAll("$" + name.toUpperCase() + "$", values[index] ?? "");
+  }
+  return message;
+}
+
+async function loadSelectedLanguage() {
+  const { language = "auto" } = await chrome.storage.sync.get({ language: "auto" });
+  const resolvedLanguage = language === "auto"
+    ? (chrome.i18n.getUILanguage().toLowerCase().startsWith("zh") ? "zh_CN" : "en")
+    : language;
+  const version = chrome.runtime.getManifest().version;
+  const url = chrome.runtime.getURL(`_locales/${resolvedLanguage}/messages.json?v=${version}`);
+  const response = await fetch(url, { cache: "no-store" });
+  const messages = await response.json();
+  localeMessages = Object.fromEntries(
+    Object.entries(messages).map(([key, value]) => [key.toLowerCase(), value])
+  );
+}
+
+let languageReady = loadSelectedLanguage();
 
 // 支持 http/https；没写协议时补 http://
 function normalizeController(url) {
@@ -18,6 +46,7 @@ function normalizeController(url) {
 const COLORS = {
   direct: "#16a34a",
   proxy: "#2563eb",
+  block: "#dc2626",
   mixed: "#7c3aed",
   unknown: "#9ca3af",
   error: "#dc2626"
@@ -29,6 +58,11 @@ const CACHE_TTL = 30 * 60 * 1000;
 
 // tabId -> Set<host>：该 tab 实际请求过的域名（webRequest 记录）
 const tabDomains = new Map();
+// tabId -> Map<host, stats>：该 tab 内每个域名的请求次数和浏览器侧耗时
+const tabDomainStats = new Map();
+// requestId -> request start info：用于 onCompleted/onErrorOccurred 计算耗时
+const requestStarts = new Map();
+const routeSampleTimers = new Map();
 
 let proxiesCache = { data: null, time: 0 };
 const PROXIES_TTL = 10 * 1000;
@@ -91,18 +125,29 @@ function connHost(c) {
   return m.host || m.sniffHost || m.destinationIP || "";
 }
 
+function isDirectOutbound(outbound) {
+  return String(outbound || "").trim().toUpperCase() === "DIRECT";
+}
+
+function isBlockedOutbound(outbound) {
+  return /^(REJECT|REJECT-DROP|DROP|BLOCK)$/.test(String(outbound || "").trim().toUpperCase());
+}
+
+function isExplicitlyBlockedError(error) {
+  return /ERR_BLOCKED_BY_(CLIENT|ADMINISTRATOR|RESPONSE)/i.test(error || "");
+}
+
 function summarize(conn) {
   const chains = conn.chains || [];
   const outbound = chains[0] || "";
   return {
-    direct: outbound === "DIRECT",
+    direct: isDirectOutbound(outbound),
+    blocked: isBlockedOutbound(outbound),
     outbound,
     chains,
     rule: conn.rule || "",
     rulePayload: conn.rulePayload || "",
     host: connHost(conn),
-    up: conn.upload || 0,
-    down: conn.download || 0,
     time: Date.now()
   };
 }
@@ -117,14 +162,79 @@ function putCache(host, s) {
   cache.set(host, s);
 }
 
-// 域名 -> 连接匹配：精确优先，其次主域名
-function matchConn(conns, host) {
-  let m = conns.filter((c) => connHost(c) === host);
-  if (!m.length) {
-    const bd = baseDomain(host);
-    m = conns.filter((c) => baseDomain(connHost(c)) === bd);
+function exactConnMatches(conns, host) {
+  return conns.filter((c) => connHost(c) === host);
+}
+
+function relatedConnMatches(conns, host) {
+  const bd = baseDomain(host);
+  return conns.filter((c) => {
+    const h = connHost(c);
+    return h && h !== host && baseDomain(h) === bd;
+  });
+}
+
+function routeKey(s) {
+  return s.direct ? "direct" : s.blocked ? "block" : "proxy:" + (s.outbound || "");
+}
+
+// 主页面判定：精确命中优先；只有同主域名连接路线完全一致时才兜底，避免混合页面误判。
+function inferHostSummary(conns, host) {
+  const related = relatedConnMatches(conns, host).map(summarize);
+  if (!related.length) return null;
+  const routes = new Set(related.map(routeKey));
+  return routes.size === 1 ? related[related.length - 1] : null;
+}
+
+function getTabHostStats(tabId, host) {
+  const byHost = tabDomainStats.get(tabId);
+  return byHost ? byHost.get(host) || null : null;
+}
+
+function addDomainStat(tabId, host, durationMs, error) {
+  let byHost = tabDomainStats.get(tabId);
+  if (!byHost) {
+    byHost = new Map();
+    tabDomainStats.set(tabId, byHost);
   }
-  return m;
+  const s = byHost.get(host) || {
+    count: 0,
+    totalDuration: 0,
+    lastDuration: 0,
+    errors: 0,
+    blocked: false,
+    lastError: ""
+  };
+  s.count++;
+  if (Number.isFinite(durationMs) && durationMs >= 0) {
+    s.totalDuration += durationMs;
+    s.lastDuration = durationMs;
+  }
+  if (error) {
+    s.errors++;
+    s.lastError = error;
+    if (isExplicitlyBlockedError(error)) s.blocked = true;
+  }
+  byHost.set(host, s);
+}
+
+async function sampleTabRoutes(tabId) {
+  routeSampleTimers.delete(tabId);
+  const hosts = tabDomains.get(tabId);
+  if (!hosts || !hosts.size) return;
+  try {
+    const conns = await fetchConnections();
+    for (const host of hosts) {
+      const m = exactConnMatches(conns, host);
+      if (m.length) putCache(host, summarize(m[m.length - 1]));
+    }
+  } catch (e) {}
+}
+
+function scheduleRouteSample(tabId, delay = 150) {
+  if (tabId < 0 || routeSampleTimers.has(tabId)) return;
+  const timer = setTimeout(() => sampleTabRoutes(tabId), delay);
+  routeSampleTimers.set(tabId, timer);
 }
 
 function nodeDelay(proxies, name) {
@@ -145,7 +255,7 @@ async function lookup(host, tabId) {
   const conns = await fetchConnections();
 
   // 主域名判定
-  const main = matchConn(conns, host);
+  const main = exactConnMatches(conns, host);
   let summary = null;
   let fresh = false;
   if (main.length) {
@@ -153,7 +263,9 @@ async function lookup(host, tabId) {
     putCache(host, summary);
     fresh = true;
   } else {
-    summary = getCached(host);
+    const cached = getCached(host);
+    summary = cached || inferHostSummary(conns, host);
+    fresh = !!summary && !cached;
   }
 
   // 该 tab 请求过的所有域名
@@ -166,45 +278,53 @@ async function lookup(host, tabId) {
     if (h && baseDomain(h) === bd) domainSet.add(h);
   }
 
-  let traffic = { up: 0, down: 0 };
   const domains = [];
-  const counts = { direct: 0, proxy: 0, unknown: 0 };
+  const counts = { direct: 0, proxy: 0, block: 0, unknown: 0 };
   for (const d of domainSet) {
-    const m = conns.filter((c) => connHost(c) === d);
+    const m = exactConnMatches(conns, d);
     let s = null;
     if (m.length) {
       s = summarize(m[m.length - 1]);
       putCache(d, s);
-      for (const c of m) {
-        traffic.up += c.upload || 0;
-        traffic.down += c.download || 0;
-      }
     } else {
       s = getCached(d);
     }
-    if (!s) {
+    const stat = getTabHostStats(tabId, d);
+    const timing = stat
+      ? {
+          count: stat.count,
+          avgDuration: stat.count ? stat.totalDuration / stat.count : 0,
+          lastDuration: stat.lastDuration,
+          errors: stat.errors,
+          lastError: stat.lastError
+        }
+      : null;
+    if (s && s.blocked || stat && stat.blocked) {
+      counts.block++;
+      domains.push({ host: d, state: "block", outbound: s ? s.outbound : "BLOCK", timing });
+    } else if (!s) {
       counts.unknown++;
-      domains.push({ host: d, state: "unknown", outbound: "" });
+      domains.push({ host: d, state: "unknown", outbound: "", timing });
     } else if (s.direct) {
       counts.direct++;
-      domains.push({ host: d, state: "direct", outbound: "DIRECT" });
+      domains.push({ host: d, state: "direct", outbound: "DIRECT", timing });
     } else {
       counts.proxy++;
-      domains.push({ host: d, state: "proxy", outbound: s.outbound });
+      domains.push({ host: d, state: "proxy", outbound: s.outbound, timing });
     }
   }
   domains.sort((a, b) => a.host.localeCompare(b.host));
 
   // 节点延迟
   let delayMs = null;
-  if (summary && !summary.direct && summary.chains.length) {
+  if (summary && !summary.direct && !summary.blocked && summary.chains.length) {
     try {
       const proxies = await fetchProxies();
       delayMs = nodeDelay(proxies, summary.outbound);
     } catch (e) {}
   }
 
-  return { ok: true, fresh, summary, delayMs, traffic, domains, counts };
+  return { ok: true, fresh, summary, delayMs, domains, counts };
 }
 
 // ---------- 动态图标 ----------
@@ -235,6 +355,7 @@ async function setIndicator(tabId, state, title) {
 }
 
 async function updateIndicator(tabId, url) {
+  await languageReady;
   if (!url || !/^https?:/i.test(url)) {
     await setIndicator(tabId, "unknown", t("extName"));
     return;
@@ -247,15 +368,20 @@ async function updateIndicator(tabId, url) {
   }
   try {
     const conns = await fetchConnections();
-    const m = matchConn(conns, host);
-    let s = m.length ? summarize(m[m.length - 1]) : getCached(host);
+    const m = exactConnMatches(conns, host);
+    let s = m.length ? summarize(m[m.length - 1]) : getCached(host) || inferHostSummary(conns, host);
     if (m.length) putCache(host, s);
     if (!s) {
       await setIndicator(tabId, "unknown", t("bgNoRecord", [host]));
       return;
     }
-    const label = s.direct ? t("direct") : t("proxy") + " " + s.chains.slice().reverse().join(" → ");
-    await setIndicator(tabId, s.direct ? "direct" : "proxy", `${host}: ${label}\n${t("bgRule")}: ${s.rule} ${s.rulePayload}`);
+    const state = s.direct ? "direct" : s.blocked ? "block" : "proxy";
+    const label = s.direct
+      ? t("direct")
+      : s.blocked
+        ? t("block")
+        : t("proxy") + " " + s.chains.slice().reverse().join(" → ");
+    await setIndicator(tabId, state, `${host}: ${label}\n${t("bgRule")}: ${s.rule} ${s.rulePayload}`);
   } catch (e) {
     if (await isConfigured()) {
       await setIndicator(tabId, "error", t("bgCtrlError", [e.message]));
@@ -286,6 +412,7 @@ chrome.webRequest.onBeforeRequest.addListener(
       const host = new URL(details.url).hostname;
       if (details.type === "main_frame") {
         tabDomains.set(details.tabId, new Set([host]));
+        tabDomainStats.set(details.tabId, new Map());
       } else {
         let set = tabDomains.get(details.tabId);
         if (!set) {
@@ -294,12 +421,39 @@ chrome.webRequest.onBeforeRequest.addListener(
         }
         set.add(host);
       }
+      requestStarts.set(details.requestId, { tabId: details.tabId, host, time: details.timeStamp });
+      scheduleRouteSample(details.tabId, 150);
     } catch {}
   },
   { urls: ["<all_urls>"] }
 );
 
-chrome.tabs.onRemoved.addListener((tabId) => tabDomains.delete(tabId));
+function finishRequest(details, error = "") {
+  const start = requestStarts.get(details.requestId);
+  requestStarts.delete(details.requestId);
+  if (!start || start.tabId < 0) return;
+  const duration = details.timeStamp - start.time;
+  addDomainStat(start.tabId, start.host, duration, error);
+  scheduleRouteSample(start.tabId, 0);
+}
+
+chrome.webRequest.onCompleted.addListener(
+  (details) => finishRequest(details),
+  { urls: ["<all_urls>"] }
+);
+
+chrome.webRequest.onErrorOccurred.addListener(
+  (details) => finishRequest(details, details.error || "Request failed"),
+  { urls: ["<all_urls>"] }
+);
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabDomains.delete(tabId);
+  tabDomainStats.delete(tabId);
+  const timer = routeSampleTimers.get(tabId);
+  if (timer) clearTimeout(timer);
+  routeSampleTimers.delete(tabId);
+});
 
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   try {
@@ -316,6 +470,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.webNavigation.onCommitted.addListener((details) => {
   if (details.frameId === 0) scheduleUpdate(details.tabId, details.url);
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === "sync" && changes.language) languageReady = loadSelectedLanguage();
 });
 
 // ---------- popup 消息 ----------
