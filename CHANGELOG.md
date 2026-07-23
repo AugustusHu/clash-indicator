@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.1 (2026-07-23)
+
+- 向导页接入中文、English 和跟随浏览器三种语言模式
+- 补充路由器、本机 external controller 和 Zashboard `/ui/` 地址填写说明
+- 向导页新增 BLOCK 图例、兼容核心说明和深色模式
+- 更新后首次打开 Popup 显示一次版本提示，设置区域常驻显示当前版本号
+- 用户可见文案统一强调 Clash-compatible API，明确支持 Clash、Mihomo 和 sing-box
+- 新增可从 Popup 随时打开的使用帮助页，提供 Clash、Mihomo、sing-box 配置示例、地址定位方法和常见问题
+- 新增繁体中文和日语，并完善跟随浏览器时的语言识别
+- 面板地址支持独立配置，兼容三种核心的内置面板及单独部署的 Zashboard
+
 ## 1.4.0 (2026-07-12)
 
 ### 新特性

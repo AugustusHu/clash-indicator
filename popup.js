@@ -18,7 +18,7 @@ async function loadLanguage() {
   const { language = "auto" } = await chrome.storage.sync.get({ language: "auto" });
   $("language").value = language;
   const resolvedLanguage = language === "auto"
-    ? (chrome.i18n.getUILanguage().toLowerCase().startsWith("zh") ? "zh_CN" : "en")
+    ? resolveLanguage(chrome.i18n.getUILanguage())
     : language;
   const version = chrome.runtime.getManifest().version;
   const url = chrome.runtime.getURL(`_locales/${resolvedLanguage}/messages.json?v=${version}`);
@@ -29,10 +29,31 @@ async function loadLanguage() {
   );
 }
 
+function resolveLanguage(value) {
+  const language = String(value || "").toLowerCase().replace("_", "-");
+  if (/^zh-(tw|hk|mo|hant)/.test(language)) return "zh_TW";
+  if (language.startsWith("zh")) return "zh_CN";
+  if (language.startsWith("ja")) return "ja";
+  return "en";
+}
+
 function applyI18n() {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     el.textContent = t(el.dataset.i18n);
   });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+    el.setAttribute("aria-label", t(el.dataset.i18nTitle));
+  });
+}
+
+async function renderVersionInfo() {
+  const version = chrome.runtime.getManifest().version;
+  $("version").textContent = "v" + version;
+  const { pendingUpdateVersion = "" } = await chrome.storage.local.get({ pendingUpdateVersion: "" });
+  if (pendingUpdateVersion !== version) return;
+  $("update-title").textContent = t("updateTitle", [version]);
+  show("update-notice", true);
 }
 
 function normalizeController(v) {
@@ -170,9 +191,11 @@ async function refresh() {
 async function init() {
   await loadLanguage();
   applyI18n();
-  const cfg = await chrome.storage.sync.get({ controller: "http://192.168.10.1:9090", secret: "" });
+  await renderVersionInfo();
+  const cfg = await chrome.storage.sync.get({ controller: "http://192.168.10.1:9090", secret: "", dashboard: "" });
   $("controller").value = cfg.controller;
   $("secret").value = cfg.secret;
+  $("dashboard").value = cfg.dashboard;
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const url = tab && tab.url ? tab.url : "";
@@ -194,10 +217,19 @@ $("language").addEventListener("change", async () => {
   location.reload();
 });
 
+$("dismiss-update").addEventListener("click", async () => {
+  await chrome.storage.local.remove("pendingUpdateVersion");
+  show("update-notice", false);
+});
+
 $("open-dash").addEventListener("click", async () => {
-  const r = await chrome.runtime.sendMessage({ type: "getController" });
-  const base = normalizeController(r && r.controller);
-  chrome.tabs.create({ url: base + "/ui/" });
+  const cfg = await chrome.storage.sync.get({ controller: "", dashboard: "" });
+  const url = cfg.dashboard.trim() || normalizeController(cfg.controller) + "/ui/";
+  chrome.tabs.create({ url: /^https?:\/\//i.test(url) ? url : "http://" + url });
+});
+
+$("open-help").addEventListener("click", () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html#cores") });
 });
 
 $("save").addEventListener("click", async () => {
@@ -205,7 +237,8 @@ $("save").addEventListener("click", async () => {
   $("controller").value = normalized;
   await chrome.storage.sync.set({
     controller: normalized,
-    secret: $("secret").value.trim()
+    secret: $("secret").value.trim(),
+    dashboard: $("dashboard").value.trim()
   });
   const m = $("msg");
   m.className = "ok";

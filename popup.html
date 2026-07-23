@@ -82,6 +82,16 @@
   #msg.err { color: #dc2626; }
   .hint { color: #6b7280; font-size: 12px; line-height: 1.6; }
   .stale { color: #b45309; font-size: 11px; }
+  .update-notice {
+    position: relative; padding: 10px 42px 10px 16px; border-bottom: 1px solid #bfdbfe;
+    background: #eff6ff; color: #1e3a8a; font-size: 12px; line-height: 1.5;
+  }
+  .update-notice strong { display: block; margin-bottom: 2px; font-size: 13px; }
+  .update-notice button {
+    position: absolute; top: 8px; right: 10px; width: 26px; height: 26px; padding: 0;
+    border: 0; background: transparent; color: inherit; font-size: 18px; line-height: 1;
+  }
+  .settings-version { margin-left: 4px; color: #9ca3af; }
 
   @media (prefers-color-scheme: dark) {
     body { color: #e5e7eb; background: rgba(24, 24, 27, 0.94); }
@@ -106,6 +116,7 @@
     .dom .o.proxy { color: #60a5fa; }
     .dom .o.block { color: #f87171; }
     .dom .o.unknown { color: #71717a; }
+    .update-notice { color: #dbeafe; background: #172554; border-color: #1e3a8a; }
   }
 </style>
 </head>
@@ -125,6 +136,12 @@
     <div class="meta" id="stale-row" style="display:none">
       <span class="stale" data-i18n="cached"></span>
     </div>
+  </div>
+
+  <div class="update-notice" id="update-notice" style="display:none">
+    <strong id="update-title"></strong>
+    <span data-i18n="updateHighlights"></span>
+    <button id="dismiss-update" type="button" data-i18n-title="dismiss" aria-label="Close">×</button>
   </div>
 
   <div class="section" id="domains-sec" style="display:none">
@@ -152,22 +169,28 @@
 
   <div class="footer">
     <button id="open-dash" data-i18n="openDash"></button>
+    <button id="open-help" data-i18n="help"></button>
     <button id="refresh" data-i18n="refresh"></button>
   </div>
 
   <details id="settings-details">
-    <summary data-i18n="settingsTitle"></summary>
+    <summary><span data-i18n="settingsTitle"></span><span class="settings-version" id="version"></span></summary>
     <div class="settings">
       <label for="language" data-i18n="languageLabel"></label>
       <select id="language">
         <option value="auto" data-i18n="languageAuto"></option>
         <option value="zh_CN" data-i18n="languageChinese"></option>
+        <option value="zh_TW" data-i18n="languageTraditionalChinese"></option>
+        <option value="ja" data-i18n="languageJapanese"></option>
         <option value="en" data-i18n="languageEnglish"></option>
       </select>
       <label data-i18n="controllerLabel"></label>
       <input id="controller" placeholder="http://192.168.10.1:9090">
       <label data-i18n="secretLabel"></label>
       <input id="secret" type="password">
+      <label data-i18n="dashboardLabel"></label>
+      <input id="dashboard" placeholder="http://192.168.10.1:9090/ui/">
+      <div class="hint" data-i18n="dashboardSettingHelp"></div>
       <div class="btns">
         <button id="test" data-i18n="testBtn"></button>
         <button id="save" data-i18n="saveBtn"></button>

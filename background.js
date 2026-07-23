@@ -1,5 +1,5 @@
-// Clash 路由指示器 - background service worker
-// 基于 Clash external controller：/connections 判路由，/proxies 拿延迟和节点组
+// 路由指示器 - background service worker
+// 基于 Clash-compatible controller：/connections 判路由，/proxies 拿延迟和节点组
 
 const DEFAULTS = {
   controller: "http://192.168.10.1:9090",
@@ -23,7 +23,7 @@ function t(key, subs) {
 async function loadSelectedLanguage() {
   const { language = "auto" } = await chrome.storage.sync.get({ language: "auto" });
   const resolvedLanguage = language === "auto"
-    ? (chrome.i18n.getUILanguage().toLowerCase().startsWith("zh") ? "zh_CN" : "en")
+    ? resolveLanguage(chrome.i18n.getUILanguage())
     : language;
   const version = chrome.runtime.getManifest().version;
   const url = chrome.runtime.getURL(`_locales/${resolvedLanguage}/messages.json?v=${version}`);
@@ -32,6 +32,14 @@ async function loadSelectedLanguage() {
   localeMessages = Object.fromEntries(
     Object.entries(messages).map(([key, value]) => [key.toLowerCase(), value])
   );
+}
+
+function resolveLanguage(value) {
+  const language = String(value || "").toLowerCase().replace("_", "-");
+  if (/^zh-(tw|hk|mo|hant)/.test(language)) return "zh_TW";
+  if (language.startsWith("zh")) return "zh_CN";
+  if (language.startsWith("ja")) return "ja";
+  return "en";
 }
 
 let languageReady = loadSelectedLanguage();
@@ -399,8 +407,11 @@ function scheduleUpdate(tabId, url) {
 
 // 新安装时打开引导页（固定扩展 + 配置 controller）
 chrome.runtime.onInstalled.addListener((details) => {
+  const version = chrome.runtime.getManifest().version;
   if (details.reason === "install") {
     chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
+  } else if (details.reason === "update") {
+    chrome.storage.local.set({ pendingUpdateVersion: version });
   }
 });
 

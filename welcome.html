@@ -9,9 +9,16 @@
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
     font-size: 14px; line-height: 1.7;
   }
-  .wrap { max-width: 640px; margin: 48px auto; padding: 0 20px; }
-  h1 { font-size: 24px; display: flex; align-items: center; gap: 12px; }
+  .wrap { max-width: 720px; margin: 48px auto; padding: 0 20px; }
+  .page-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  h1 { font-size: 24px; display: flex; align-items: center; gap: 12px; margin: 0; }
   h1 img { width: 36px; height: 36px; }
+  .language-control { display: flex; align-items: center; gap: 8px; color: #6b7280; font-size: 13px; }
+  .language-control label { margin: 0; white-space: nowrap; }
+  select {
+    padding: 6px 28px 6px 9px; border: 1px solid #d1d5db; border-radius: 8px;
+    background: #fff; color: #1f2937; font-size: 13px;
+  }
   .intro { color: #6b7280; margin-bottom: 28px; }
   .card {
     background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
@@ -47,11 +54,55 @@
   #msg.ok { color: #16a34a; }
   #msg.err { color: #dc2626; }
   code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+  .tip {
+    margin-top: 12px; padding: 10px 12px; border-left: 3px solid #2563eb;
+    background: #eff6ff; color: #374151; font-size: 13px; border-radius: 0 6px 6px 0;
+  }
+  .tip p { margin: 0; }
+  .tip p + p { margin-top: 6px; }
+  .help-section { margin-top: 38px; scroll-margin-top: 24px; }
+  .help-section > h2 { margin: 0 0 6px; font-size: 20px; }
+  .help-intro { margin: 0 0 18px; color: #6b7280; }
+  .core { padding: 18px 0; border-top: 1px solid #e5e7eb; }
+  .core h3 { margin: 0 0 6px; font-size: 16px; }
+  .core p { margin: 6px 0; color: #4b5563; }
+  pre {
+    overflow-x: auto; margin: 12px 0; padding: 14px 16px; border-radius: 8px;
+    background: #111827; color: #e5e7eb; line-height: 1.55; font-size: 13px;
+  }
+  pre code { padding: 0; background: transparent; color: inherit; }
+  .find-list { margin: 12px 0 0; padding-left: 22px; }
+  .find-list li { margin: 8px 0; padding-left: 4px; }
+  details.faq { padding: 12px 0; border-top: 1px solid #e5e7eb; }
+  details.faq summary { cursor: pointer; font-weight: 600; }
+  details.faq p { margin: 8px 0 0; color: #4b5563; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #18181b; color: #e5e7eb; }
+    .card, select, input, button { background: #27272a; color: #e5e7eb; border-color: #52525b; }
+    .intro, .language-control { color: #a1a1aa; }
+    .step p, label, .legend span, .core p, details.faq p { color: #d4d4d8; }
+    .kbd, code { background: #3f3f46; }
+    .tip { background: #172554; color: #dbeafe; }
+    .help-intro { color: #a1a1aa; }
+    .core, details.faq { border-color: #3f3f46; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1><img src="icons/icon48.png" alt=""><span data-i18n="extName"></span></h1>
+  <div class="page-head">
+    <h1><img src="icons/icon48.png" alt=""><span data-i18n="extName"></span></h1>
+    <div class="language-control">
+      <label for="language" data-i18n="languageLabel"></label>
+      <select id="language">
+        <option value="auto" data-i18n="languageAuto"></option>
+        <option value="zh_CN" data-i18n="languageChinese"></option>
+        <option value="zh_TW" data-i18n="languageTraditionalChinese"></option>
+        <option value="ja" data-i18n="languageJapanese"></option>
+        <option value="en" data-i18n="languageEnglish"></option>
+      </select>
+    </div>
+  </div>
   <p class="intro" data-i18n="wIntro"></p>
 
   <div class="card">
@@ -74,6 +125,12 @@
         <input id="controller" placeholder="http://192.168.10.1:9090">
         <label data-i18n="secretLabel"></label>
         <input id="secret" type="password">
+        <label data-i18n="dashboardLabel"></label>
+        <input id="dashboard" placeholder="http://192.168.10.1:9090/ui/">
+        <div class="tip">
+          <p data-i18n="controllerHelp"></p>
+          <p data-i18n="dashboardHelp"></p>
+        </div>
         <div class="btns">
           <button id="test" data-i18n="testBtn"></button>
           <button id="save" class="primary" data-i18n="saveBtn"></button>
@@ -92,11 +149,72 @@
         <div class="legend">
           <span><i class="dot" style="background:#16a34a"></i><span data-i18n="direct"></span></span>
           <span><i class="dot" style="background:#2563eb"></i><span data-i18n="proxy"></span></span>
+          <span><i class="dot" style="background:#dc2626"></i><span data-i18n="block"></span></span>
           <span><i class="dot" style="background:#9ca3af"></i><span data-i18n="unknown"></span></span>
         </div>
       </div>
     </div>
   </div>
+
+  <section class="help-section" id="cores">
+    <h2 data-i18n="helpCoresTitle"></h2>
+    <p class="help-intro" data-i18n="helpCoresIntro"></p>
+
+    <div class="core">
+      <h3 data-i18n="clashTitle"></h3>
+      <p data-i18n="clashDesc"></p>
+      <pre><code>external-controller: 127.0.0.1:9090
+secret: "your-secret"</code></pre>
+    </div>
+
+    <div class="core">
+      <h3 data-i18n="mihomoTitle"></h3>
+      <p data-i18n="mihomoDesc"></p>
+      <pre><code>external-controller: 0.0.0.0:9090
+secret: "your-secret"</code></pre>
+      <p data-i18n="lanSecurity"></p>
+    </div>
+
+    <div class="core">
+      <h3 data-i18n="singboxTitle"></h3>
+      <p data-i18n="singboxDesc"></p>
+      <pre><code>{
+  "experimental": {
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "secret": "your-secret"
+    }
+  }
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="help-section">
+    <h2 data-i18n="findAddressTitle"></h2>
+    <p class="help-intro" data-i18n="findAddressIntro"></p>
+    <ol class="find-list">
+      <li data-i18n="findFromDashboard"></li>
+      <li data-i18n="findOnRouter"></li>
+      <li data-i18n="findOnLocal"></li>
+      <li data-i18n="findInConfig"></li>
+    </ol>
+  </section>
+
+  <section class="help-section">
+    <h2 data-i18n="troubleshootTitle"></h2>
+    <details class="faq">
+      <summary data-i18n="faqUnreachableTitle"></summary>
+      <p data-i18n="faqUnreachableDesc"></p>
+    </details>
+    <details class="faq">
+      <summary data-i18n="faqUnauthorizedTitle"></summary>
+      <p data-i18n="faqUnauthorizedDesc"></p>
+    </details>
+    <details class="faq">
+      <summary data-i18n="faqHttpsTitle"></summary>
+      <p data-i18n="faqHttpsDesc"></p>
+    </details>
+  </section>
 </div>
 <script src="welcome.js"></script>
 </body>
